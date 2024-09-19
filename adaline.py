@@ -21,17 +21,18 @@ class Adaline():
         # Bias: will be a scalar
         self.b = None
         # Record of training loss. Will be a list. Value at index i corresponds to loss on epoch i.
-        self.loss_history = None
+        self.loss_history = []
         # Record of training accuracy. Will be a list. Value at index i corresponds to acc. on epoch i.
-        self.accuracy_history = None
+        self.accuracy_history = []
 
     def get_wts(self):
         ''' Returns a copy of the network weight array'''
-        pass
+        return np.copy(self.wts)
+        
 
     def get_bias(self):
         ''' Returns a copy of the bias'''
-        pass
+        return self.b
 
     def net_input(self, features):
         ''' Computes the net_input (weighted sum of input features,  wts, bias)
@@ -45,7 +46,8 @@ class Adaline():
         ----------
         The net_input. Shape = [Num samples,]
         '''
-        pass
+        return np.dot(features,self.wts) + self.b
+        
 
     def activation(self, net_in):
         '''Applies the activation function to the net input and returns the output neuron's activation.
@@ -59,7 +61,7 @@ class Adaline():
         ----------
         net_act. ndarray. Shape = [Num samples N,]
         '''
-        pass
+        return net_in
 
     def predict(self, features):
         '''Predicts the class of each test input sample
@@ -75,7 +77,9 @@ class Adaline():
 
         NOTE: Remember to apply the activation function!
         '''
-        pass
+        net_in = self.net_input(features)
+        net_act = self.activation(net_in)
+        return np.where(net_act >= 0.0, 1, -1)
 
     def accuracy(self, y, y_pred):
         ''' Computes accuracy (proportion correct) (across a single training epoch)
@@ -92,7 +96,7 @@ class Adaline():
         float. The accuracy for each input sample in the epoch. ndarray.
             Expressed as proportions in [0.0, 1.0]
         '''
-        pass
+        return np.mean(y == y_pred)
 
     def loss(self, y, net_act):
         ''' Computes the Sum of Squared Error (SSE) loss (over a single training epoch)
@@ -108,7 +112,7 @@ class Adaline():
         ----------
         float. The SSE loss (across a single training epoch).
         '''
-        pass
+        return 0.5 * (np.sum((y - net_act) ** 2))
 
     def gradient(self, errors, features):
         ''' Computes the error gradient of the loss function (for a single epoch).
@@ -128,7 +132,13 @@ class Adaline():
         grad_wts: ndarray. shape=(Num features N,).
             Gradient with respect to the neuron weights in the input feature layer
         '''
-        pass
+        # grad_bias = -1 * np.sum(errors)
+        # grad_wts = -1 * (features.T @ errors)
+        # return grad_bias, grad_wts
+
+        grad_bias = -np.sum(errors)
+        grad_wts = -np.dot(errors,features)
+        return grad_bias, grad_wts
 
     def fit(self, features, y, n_epochs=1000, lr=0.001, r_seed=None):
         '''Trains the network on the input features for self.n_epochs number of epochs
@@ -161,4 +171,28 @@ class Adaline():
             - Compute the error, loss, and accuracy (across the entire epoch).
             - Do backprop to update the weights and bias.
         '''
-        pass
+        rng = np.random.default_rng(r_seed)
+
+        n_samples, n_features = features.shape
+    
+        self.wts = rng.normal(0, 0.01, size=n_features)
+        self.b = rng.normal(0, 0.01)
+
+        for epoch in range(n_epochs):
+            net_in = self.net_input(features)
+            net_act = self.activation(net_in)
+
+            errors = y - net_act
+
+            loss_value = self.loss(y, net_act)
+            acc_value = self.accuracy(y, self.predict(features))
+
+            self.loss_history.append(loss_value)
+            self.accuracy_history.append(acc_value)
+
+            grad_bias, grad_wts = self.gradient(errors, features)
+
+            self.wts -= lr * grad_wts
+            self.b -= lr * grad_bias
+
+        return self.loss_history, self.accuracy_history
